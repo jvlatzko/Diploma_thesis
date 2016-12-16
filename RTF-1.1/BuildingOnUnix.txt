@@ -1,0 +1,66 @@
+You need gcc 4.7 or a more recent version (for C++11 support), as well
+as a recent copy of cmake. On Linux, these packages should be
+available in your distribution. On Mac OS X, the recommended route is
+to install MacPorts (http://www.macports.org/), which provides
+packages both for GCC and cmake.
+
+In addition, the following software packages are required:
+
+- Boost >= 1.49 (system, filesystem, and optionally mpi)
+- Eigen3 >= 3.1
+- ITK >= 4.3
+- Any compliant MPI implementation (optional)
+
+Again, packages for these libraries should come with your
+distribution. For instance, on Ubuntu 13.04, the following packages
+had to be installed for successful compilation:
+
+- libboost-dev, libboost-system-dev, libboost-filesystem-dev
+- libboost-program-options-dev, libboost-mpi-dev
+- libeigen3-dev
+- libinsighttoolkit4-dev
+- libpng-dev, libz-dev, libjpeg-dev, libtiff-dev (needed for ITK)
+- libopenmpi-dev
+
+On Linux, the paths to the headers and libraries should be found
+automatically by the cmake-based build script of the RTF distribution.
+
+On Mac OS X, a slight complication with MacPorts is that at the time
+of writing, the port of ITK is outdated and only contains build files
+for ITK3. The recommended route is to build ITK4 on your own, as
+described in BuildingOnWindows.txt. Moreover, the boost port of
+MacPorts does not build the boost MPI library. Again, it is fairly
+straightforward to build boost on your own, as described in
+BuildingOnWindows.txt.  The 'eigen3' port of MacPorts is perfectly
+suitable on the other hand. You may have to set a few environment
+variables in order to help cmake find your custom-built packages:
+
+  export CMAKE_INCLUDE_PATH=/opt/local/include/eigen3/
+  export BOOST_ROOT=(path to boost build directory)
+  export ITK_DIR=(path to ITK build directory)
+
+The RTF core library is header-only, and as such it need not be built.
+However, in order to build the example applications, change into the
+base directory of the source distribution, and create a build
+directory which will contain the created binaries:
+
+  mkdir build
+  cd build
+
+Set up your environment variables to select GCC 4.7 (rather than some
+older version that may be installed on your system):
+
+  export CC="gcc-4.7"      (or gcc-mp-4.7 using MacPorts)
+  export CXX="g++-4.7"     (or g++-mp-4.7 using MacPorts)
+
+Then use cmake to generate makefiles for your platform:
+
+  cmake -DCMAKE_BUILD_TYPE="Release" ..
+
+And invoke the release build:
+
+  make
+
+You can then run the example applications using:
+
+  ctest -C Release -V 

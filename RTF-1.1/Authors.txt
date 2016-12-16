@@ -1,0 +1,8 @@
+Jeremy Jancsary <jeremy.jancsary@gmail.com>
+Sebastian Nowozin <sebastian.nowozin@microsoft.com>
+Toby Sharp <toby.sharp@microsoft.com>
+Uwe Schmidt <uwe.schmidt@gris.tu-darmstadt.de>
+Jan Latzko <j@o7o.de> 
+
+---
+Last modified by Jan Latzko on 02/11/2016.

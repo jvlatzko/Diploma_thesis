@@ -1,0 +1,108 @@
+Supported configuration:
+
+Visual Studio 2012, Win64
+=========================
+
+In order to build the RTF example applications, you will first need to
+obtain and build a few support libraries.  In the following, we will
+assume that all of these libraries will be built in the directory
+c:\rtf-supp\.
+
+1) Obtain a pre-built binary of cmake from http://www.cmake.org/, and
+ensure the cmake.exe binary is in your PATH system variable.
+
+2) If you want to leverage support for MPI in order to train models on
+a Microsoft HPC cluster, download and install the HPC Pack 2012, and HPC Pack
+2012 MS-MPI Redistributable Package, available at
+http://www.microsoft.com/en-gb/download/details.aspx?id=39959
+and
+http://www.microsoft.com/en-us/download/details.aspx?id=36045
+
+3) Obtain and build the boost libraries from http://www.boost.org.
+
+Build the boost libraries as follows:
+
+   a) Download and unpack the boost distribution to c:\rtf-supp\.
+
+   b) Open a Visual Studio 2012 x64 command prompt and cd to the boost
+      directory, e.g. c:\rtf-supp\boost_1_54_0\.
+
+   c) Run bootstrap.bat.
+
+   d) If you want support for MPI, edit
+      c:\rtf-supp\boost_1_54_0\project-config.jam and add a line:
+      'using mpi ;'.
+
+   e) If you want support for MPI, edit
+      c:\rtf-supp\boost_1_54_0\tools\build\v2\tools\mpi.jam and:
+        
+        Replace:
+          local cluster_pack_path_native = 
+            "C:\\Program Files\\Microsoft Compute Cluster Pack" ;
+        By:
+          local cluster_pack_path_native = 
+            "C:\\Program Files\\Microsoft HPC Pack 2012" ;
+
+        Replace:
+          if [ GLOB $(cluster_pack_path_native)\\Include : mpi.h ]
+        By:
+	  if [ GLOB $(cluster_pack_path_native)\\Inc : mpi.h ]
+
+        Replace:
+          options = <include>$(cluster_pack_path)/Include 
+        By:
+          options = <include>$(cluster_pack_path)/Inc
+
+   f. Run b2 --build-type=complete address-model=64 stage
+
+
+4) Obtain and build the ITK library from http://www.itk.org.
+
+Build the ITK library as follows:
+
+   a) Download and unpack the ITK distribution to c:\rtf-supp\.
+
+   b) Open a Visual Studio 2012 x64 command prompt and cd to the ITK
+      directory, e.g. c:\rtf-supp\InsightToolkit-4.4.0\.
+   
+   c) Create a 'build' directory and cd into it.
+   
+   d) Generate build files: cmake -G "Visual Studio 11 Win64" ..
+   
+   d) Invoke the builds:
+      msbuild /p:Configuration=RelWithDebInfo ITK.sln
+      msbuild /p:Configuration=Release ITK.sln
+      msbuild /p:Configuration=Debug ITK.sln
+
+5) Obtain the (header-only) Eigen library from
+http://eigen.tuxfamily.org.
+
+Extract the distribution to c:\rtf-supp, such that the Eigen headers
+are accessible, e.g., at c:\rtf-supp\eigen-3.1.3\Eigen\.
+
+6) Build the RTF example applications.
+
+Change into the base directory of the source distribution, and create
+a build directory which will contain the created binaries:
+ 
+  cd c:\rtf
+  mkdir build && cd build
+
+Set the required environment variables so as to point to the
+previously compiled packages:
+
+  set CMAKE_INCLUDE_PATH=c:\rtf-supp\eigen-3.1.3\
+  set BOOST_ROOT=c:\rtf-supp\boost_1_54_0\
+  set ITK_DIR=c:\rtf-supp\InsightToolkit-4.4.0\build\
+  
+Use cmake to create solution files for your platform:
+
+  cmake -G "Visual Studio 11 Win64" ..
+
+Invoke the release build:
+
+  msbuild /p:Configuration=Release RTF.sln
+
+You can then run the example applications using:
+
+  ctest -C Release -V

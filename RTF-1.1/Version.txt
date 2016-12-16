@@ -1,0 +1,8 @@
+1.0, released 31/08/2013
+
+1.1, released 08/05/2014
+- modified: Readme.txt, Version.txt, Authors.txt, Apps/CMakeLists.txt
+- added:    Apps/Deconvolution/*, Data/Deconvolution/*, Models/*
+
+---
+Last modified by Uwe Schmidt on 08/05/2014.
