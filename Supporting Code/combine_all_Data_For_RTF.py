@@ -38,7 +38,7 @@ for i in np.arange(0, int(numberOfScenes), 1):
     C2 = img_as_float(r2)
     C3 = img_as_float(r3)
 
-    # load "ground truth" - this is true z depth as opposed to other data
+    # load ground truth - this is true z depth as opposed to other data
     # needs to be saved as label
     # might be added as channel for troubleshooting
     GT = np.loadtxt(dataPath + sceneName + '_gt.txt', delimiter=',')
@@ -47,13 +47,18 @@ for i in np.arange(0, int(numberOfScenes), 1):
     Nom = C3 - C1
     Denom = C0 - C2
     # Will serve as Channel 7
-    Quot = Nom/Denom; 
+    Quot = np.ma.divide(Nom, Denom); 
+    mm = np.max(Quot); 
+    Quot[Quot.mask] = mm; 
+    Q = Quot.data;
     # Intensity, will serve as channel 8
     I = 1/4.0*(C0+C1+C2+C3)
     # Will serve as Channel 9
     P = np.arctan2(Nom, Denom)
     # Variant: shift phase as one would shift depth
-    P[P < 0] += (2*np.pi)
+    D = P.copy()
+    D[D < 0] += (2*np.pi)
+    D *= c0/(4*np.pi*TOFfreq)
 
     # D = P.copy()
     # D *= c0/(4*np.pi*TOFfreq)
@@ -67,7 +72,7 @@ for i in np.arange(0, int(numberOfScenes), 1):
     # D /= np.sqrt(np.square(xx) + np.square(yy) + 1.0)
 
     # Concatenate all 
-    T = np.dstack((C0, C1, C2, C3, Nom, Denom, Quot, I, P)); 
+    T = np.dstack((C0, C1, C2, C3, Nom, Denom, Q, I, D)); 
 
     Cmbd = np.ones((T.shape[0], T.shape[2]*T.shape[1])); 
 

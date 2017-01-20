@@ -2,10 +2,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from os import listdir
 
-dataPath = "ToF-data/Train_Val_Set/"
-imP = dataPath + "images/"; laP = dataPath + "labels/";
+# dataPath = "ToF-data/Train_Val_Set/"
+# imP = dataPath + "images/"; laP = dataPath + "labels/";
 
 def getScenes(fname):
     if (fname.find("rain") > 0):
@@ -18,22 +17,33 @@ def getScenes(fname):
     print("%i scenes"%len(scenes))
     return scenes; 
 
+def getAllScenes(dataPath = "./"):
+    scenes = [line.strip() for line in open(dataPath + "allScenes.txt", 'r')]
+    return scenes; 
+
 def loglorentzian(x, s=1.0):
     return np.exp(-np.log(1+s*x**2))
 
 def lorentzian(x,s=1.0):
     return np.log(1 + s * x**2)
 
-files = getScenes("Train"); 
+def getVal(default):
+    r = input().strip()
+    if r == '':
+        return default
+    else:
+        return r
 
-Dm = np.ndarray((len(files), 200, 200)); Gm = Dm.copy()
+print("Please enter path to data: [../wholeset/]")
+dataPath = getVal("../wholeset/")
+trainScenes = getScenes("Train"); 
+allScenes = getAllScenes()
+
 S, H, E = [], 0, 0
-for i in range(len(files)): 
-    tmp     = np.loadtxt(imP + files[i] + ".dlm", delimiter='\t')
-    Dm[i]   = tmp[:, 8:1800:9]
-    Gm[i]   = np.loadtxt(laP + files[i] + ".dlm", delimiter='\t')
-
-    diff = Dm[i] - Gm[i]
+for i in range(len(allScenes)): 
+    D = np.loadtxt("images/%s.dlm"%allScenes[i])
+    G = np.loadtxt("labels/%s.dlm"%allScenes[i])
+    diff = D[:, 8:1800:9] - G; 
     F = diff.flatten()
     S.append([np.min(diff), np.max(F), np.mean(F), np.median(F)])
     F -= F.mean()
@@ -48,15 +58,16 @@ ErrV = E[:-1]
 P = H/(np.sum(H)); 
 P /= np.max(P) # needed to normalize likelihood distribution (otherwise, maximum is 0.09 = 9 % )
 plt.plot(P); plt.show()
-
-s = 50; 
+plt.semilogy(ErrV, P); plt.xlabel("Deviation [m]"); plt.ylabel("Normalised likelihood"); 
+plt.savefig('Data-Error-Distribution_allScenes.png')
+plt.savefig('Data-Error-Distribution_allScenes.pdf')
 
 def displayErrHistograms(): 
     plt.figure(figsize=(12,4))
     for i,pl in enumerate((plt.semilogy, plt.plot)):
         plt.subplot(1,2,i+1)
         pl(ErrV, P)
-        pl(ErrV, loglorentzian(ErrV,s))
+        pl(ErrV, loglorentzian(ErrV, 50))
         plt.xlabel("Deviation [m]"); 
         plt.ylabel("Normalized likelihood")
     plt.show()
@@ -67,7 +78,7 @@ def displayErrHistrogramsZoomed():
     for i,pl in enumerate((plt.semilogy, plt.plot)):
         plt.subplot(1,2,i+1)
         pl(ErrV[idx],P[idx])
-        pl(ErrV[idx], loglorentzian(ErrV[idx],s))
+        pl(ErrV[idx], loglorentzian(ErrV[idx], 50))
         plt.xlabel("Deviation [m]"); 
         plt.ylabel("Normalized likelihood")
     plt.show()
@@ -103,5 +114,4 @@ def displayErrHistograms2Zoomed():
 
 displayErrHistograms()
 plt.show()
-#displayErrHistograms2()
 
