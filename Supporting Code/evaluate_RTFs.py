@@ -2,7 +2,6 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import img_as_float, io
 
 
 def getScenes(fname):
@@ -26,6 +25,11 @@ def LorentzianLoss(Img, Ground, s = 50):
     tImg -= np.mean(tImg); 
     return np.mean(np.log(1.0 + s*(tImg)**2))
 
+def myMSE(Img, Ground):
+    tImg = Img - Ground; 
+    tImg -= np.mean(tImg); 
+    return np.mean( np.sqrt(np.square(tImg)) )
+
 def readResults(rtfexp_name, conn, depth, scene_name):
     groundTruth = np.loadtxt(dataPath + "labels/" + scene_name + ".dlm", delimiter='\t') # Get GT from data folder
     # GT DONE
@@ -46,7 +50,6 @@ def readValResults(rtfexp_name, conn, depth, scene_name):
     #OUTPUT DONE    
     return groundTruth, inputRTF, outputRTF
 
-
 def readTestResults(rtfexp_name, conn, depth, scene_name):
     groundTruth = np.loadtxt("%s_test/%s Ground.dlm"%(rtfexp_name, scene_name), delimiter='\t')# Get GT from data folder
     # GT DONE
@@ -61,31 +64,53 @@ def writeStats(RTF_experiment, conn, depth, setType, S):
     nameStr = "%s/Evaluation_Results_RTFTrainedForMyLorentzian_%dx%d_%d_%s.txt"%(RTF_experiment, conn, conn, depth, setType)
     np.savetxt(nameStr, S, delimiter='\t', fmt='%.8f'); 
 
+def writeTestStats(RTF_experiment, conn, depth, S, setType = "trueTest", cascadeComparison = False): 
+    nameStr = "%s_test/Evaluation_Results_RTF_%dx%d_%d_%s.txt"%(RTF_experiment, conn, conn, depth, setType)
+    if( cascadeComparison): 
+        nameStr = "%s_test/Evaluation_Results_RTF_%dx%d_%d_%s_cascade.txt"%(RTF_experiment, conn, conn, depth, setType)
+    np.savetxt(nameStr, S, delimiter='\t', fmt='%.8f'); 
+
 def evaluateScenes(rtfexp_name, conn, depth, sceneSet, cascadeComparison = True): 
-    totalLoss = []; totalFormLoss = []; 
+    totalFormLoss = []; totalMSE = []; totalMSE_RTF = []; totalMSE_RTFc = []; totalLoss_RTF = []; totalLoss_RTFc = []; 
     print("Number of scenes: %d"%len(sceneSet))
-    S = np.zeros((2 + len(sceneSet),5)) 
+    S = np.zeros((2 + len(sceneSet),6)) 
     ii = 2; 
+    if (setType.find("rueT") > 0):
+        testCase = 1;
     for scene in sceneSet:
-        GT, iRTF, oRTF = readValResults(rtfexp_name, conn, depth, scene); 
-        diffIm1 = oRTF - oRTFc; 
-        currLoss = LorentzianLoss(GT, oRTF); 
-        currLossC = LorentzianLoss(GT, oRTFc); 
+        if (testCase): 
+            GT, iRTF, oRTF = readTestResults(rtfexp_name, conn, depth, scene); 
+        else:
+            GT, iRTF, oRTF = readValResults(rtfexp_name, conn, depth, scene);
         formLoss = LorentzianLoss(GT, iRTF);
-        totalLoss.append(currLoss); 
         totalFormLoss.append(formLoss); 
-        S[ii, :] = [np.min(oRTF), np.max(oRTF), np.mean(diffIm1), formLoss, currLoss]
+        err_MSE = myMSE(GT, iRTF)
+        totalMSE.append(err_MSE); 
+        loss_RTF = LorentzianLoss(GT, oRTF);
+        totalLoss_RTF.append(loss_RTF); 
+        err_RTF = myMSE(GT, oRTF); 
+        totalMSE_RTF.append(err_RTF); 
         saveScene(rtfexp_name, conn, depth, scene, True)
         if( cascadeComparison ): 
-            GTc, iRTFc, oRTFc = readTestResults("%s_2"%rtfexp_name, conn, depth, scene); #Naming convention for CRTF
+            if (testCase): 
+                GT, iRTF, oRTF = readTestResults(rtfexp_name, conn, depth, scene); 
+            else:
+                GT, iRTF, oRTF = readValResults(rtfexp_name, conn, depth, scene);  
+            loss_RTFc = LorentzianLoss(GT, oRTFc); 
+            totalLoss_RTFc.append(loss_RTFc); 
+            err_RTFc = myMSE(GT, oRTFc)
+            totalMSE_RTFc.append(err_RTFc); 
+            S[ii, :] = [formLoss, err_MSE, loss_RTF,  err_RTF, loss_RTFc, err_RTFc]
             saveCascadeComparison(scene, rtfexp_name, conn, depth); 
+        else: 
+            S[ii, 0:4] = [formLoss, err_MSE, loss_RTF,  err_RTF]
         ii += 1; 
-        #S.append((np.min(oRTF), np.max(oRTF), np.mean(diffIm1), formLoss, currLoss))
-    # writeStats(rtfexp_name, conn, depth, sceneSet)
-    print("%s total loss: before @ %.5f, after @ %.5f"%(rtfexp_name, np.mean(totalFormLoss), np.mean(totalLoss)))
-    S[0, 0] = np.mean(totalFormLoss); S[0,1] = np.mean(totalLoss);
-    return np.mean(totalLoss), np.mean(totalFormLoss), S
-
+    print("%s total loss: before @ %.5f, after @ %.5f"%(rtfexp_name, np.mean(totalFormLoss), np.mean(totalLoss_RTF)))
+    S[0, 0] = np.mean(totalFormLoss); S[0, 1] = np.mean(totalMSE); S[0, 2] = np.mean(totalLoss_RTF); S[0, 3] = np.mean(totalMSE_RTF)
+    if(cascadeComparison): 
+        S[0, 4] = np.mean(totalLoss_RTFc);
+        S[0, 5] = np.mean(totalMSE_RTFc)
+    return S
 
 def visualizeScene(rtfexp_name, conn, depth, sceneName, deltaSwitch = True):
     GT, iRTF, oRTF = readTestResults(rtfexp_name, conn, depth, sceneName); 
@@ -134,9 +159,9 @@ def cascadeComparison(sceneName, rtfexp_name, conn, depth):
     vmin, vmax = np.min(GT), np.max(GT); 
     plt.subplot(221); plt.imshow(iRTF, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Baseline (%s)"%float('%.5g' % LorentzianLoss(iRTF, GT)) ); plt.colorbar(); 
     plt.subplot(222); plt.imshow(GT, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Ground Truth %s"%sceneName); plt.colorbar(); 
-#    vmin, vmax = np.min(), np.max(); 
+   # vmin, vmax = np.min(), np.max();
     plt.subplot(223); plt.imshow(oRTF, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Loss RTF (%s)"%float('%.5g' % LorentzianLoss(oRTF, GT)) ); plt.colorbar();
-    plt.subplot(224); plt.imshow(oRTFc, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Loss Cascade %s"%float('%.5g' % LorentzianLoss(oRTFc, GT)) ); plt.colorbar(); 
+    plt.subplot(224); plt.imshow(oRTFc, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Loss Cascade (%s)"%float('%.5g' % LorentzianLoss(oRTFc, GT)) ); plt.colorbar(); 
     plt.show()
     #plt.savefig('%s_comparison.png'%sceneName, bbox_inches='tight')
     plt.close()
@@ -149,7 +174,7 @@ def saveCascadeComparison(sceneName, rtfexp_name, conn, depth):
     vmin, vmax = np.min(GT), np.max(GT); 
     plt.subplot(221); plt.imshow(iRTF, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Baseline (%s)"%float('%.5g' % LorentzianLoss(iRTF, GT)) ); plt.colorbar(); 
     plt.subplot(222); plt.imshow(GT, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Ground Truth %s"%sceneName); plt.colorbar(); 
-#    vmin, vmax = np.min(), np.max(); 
+   # vmin, vmax = np.min(), np.max();
     plt.subplot(223); plt.imshow(oRTF, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Loss RTF (%s)"%float('%.5g' % LorentzianLoss(oRTF, GT)) ); plt.colorbar(); 
     plt.subplot(224); plt.imshow(oRTFc, interpolation='nearest', vmin=vmin, vmax=vmax); plt.axis('off'); plt.title("Loss Cascade (%s)"%float('%.5g' % LorentzianLoss(oRTFc, GT)) ); plt.colorbar(); 
     #plt.show()
@@ -169,18 +194,18 @@ if __name__ == "__main__":
     print("Please enter path to data: [../wholeset/]")
     dataPath = getVal("../wholeset/")
 
-#    trainScenes = getScenes("Train")
+   # trainScenes = getScenes("Train")
     testScenes  = getScenes("Test")
     trueTestScenes  = getScenes("trueTest")
-#    RTF_experiment, RTF_connectivity, RTF_depth = "1x1_10_lambda50_E2", 1, 10; # and so on
+   # RTF_experiment, RTF_connectivity, RTF_depth = "1x1_10_lambda50_E2", 1, 10; # and so on
     print("Enter RTF experiment name, connectivity and depth (separate by return) [3x3_13, 3, 13]")
     RTF_experiment, RTF_connectivity, RTF_depth = getVal("3x3_13"), int(getVal("3")), int(getVal("13")); 
     
-    #trainTotal_RTF_loss, trainTotal_formula_loss, Strain = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, trainScenes)
+    #Strain = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, trainScenes)
     #writeStats(RTF_experiment, RTF_connectivity, RTF_depth, "train", Strain)
-    testTotal_RTF_loss, testTotal_formula_loss, Stest = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, testScenes)
+    Stest = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, testScenes)
     #writeStats(RTF_experiment, RTF_connectivity, RTF_depth, "test", Stest)
-#    trueTestTotal_RTF_loss, trueTestTotal_formula_loss, StrueTest = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, trueTestScenes)
+   # StrueTest = evaluateScenes(RTF_experiment, RTF_connectivity, RTF_depth, trueTestScenes)
     #writeStats(RTF_experiment, RTF_connectivity, RTF_depth, "trueTest", StrueTest)
     
     print("How many random scenes should be chosen for display? [4]")
