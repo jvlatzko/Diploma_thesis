@@ -3,7 +3,7 @@
 
 import numpy as np
 import random, re
-from skimage import img_as_float, measure, io
+from skimage import img_as_float, measure
 from skimage.restoration import denoise_tv_chambolle
 import matplotlib.pyplot as plt
 
@@ -32,6 +32,11 @@ def lorentzianLoss(Img, Ground, s = 50):
     tImg -= np.mean(tImg); 
     return np.mean(np.log(1.0 + s*(tImg)**2))
 
+def myMSE(Img, Ground):
+    tImg = Img - Ground; 
+    tImg -= np.mean(tImg); 
+    return np.mean( np.sqrt(np.square(tImg)) )
+
 def loadScene(scene_name, dataPath = "./"):
     groundTruth = np.loadtxt(dataPath + "labels/" + scene_name + ".dlm", delimiter='\t') # Get GT from data folder
     # GT DONE
@@ -48,14 +53,8 @@ def storeLoss(sceneset):
         ddict[scene] = tloss; 
     return ddict
     
-def evaluateSetLoss(sceneSet, ddict): 
-    tloss = 0.0; 
-    for scene in sceneSet: 
-        tloss += ddict[scene]
-    return tloss/len(sceneSet)
-
 def evaluateScenes(sceneSet, weight, ddict):
-    totalLoss = 0.0;
+    totalLoss = 0.0; totalErr = 0.0; 
     testSetLoss = np.mean(list(ddict.values()))
     #print("Filter config: Weight %f"%(weight))
     for scene in sceneSet:
@@ -63,10 +62,12 @@ def evaluateScenes(sceneSet, weight, ddict):
         formLoss = ddict[scene];
         Dd = denoise_tv_chambolle(formula, weight, multichannel=False)
         totalLoss += lorentzianLoss(Dd, gt); 
+        totalErr += myMSE(Dd, gt)
     #    print(LorentzianLoss(Dd, gt)); 
     totalLoss /= len(sceneSet)
+    totalErr /= len(sceneSet)
     print("Result for weight %f : %f vs. %f"%(weight, totalLoss, testSetLoss)); 
-    return totalLoss
+    return totalLoss, totalErr
 
 def displayScene(scene, weight, ddict):
     gt, formula = loadScene(scene); 
@@ -118,7 +119,7 @@ def totVarApplication(startWeight, stopWeight, stepWeight, sceneSet, sceneSetLos
     weight = np.arange(startWeight, stopWeight, stepWeight);
     grid = np.zeros((len(weight))); 
     for i in range(len(weight)):
-        grid[i] = evaluateScenes(sceneSet, weight[i], sceneSetLoss); 
+        grid[i], set_MSE = evaluateScenes(sceneSet, weight[i], sceneSetLoss); 
     return weight, grid; 
 
 def saveBadScene(scene, weight):
