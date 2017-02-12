@@ -12073,6 +12073,16 @@ div#notebook {
 </div>
 </div>
 </div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">&#182;</a></h2><p>Loading scenes and files, preparing description of RTF from input</p>
+
+</div>
+</div>
+</div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[7]:</div>
@@ -12196,6 +12206,17 @@ For cascaded configuration, enter stackdepth [&#39;&#39;]
 </div>
 
 </div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Evaluation-of-RTF-results">Evaluation of RTF results<a class="anchor-link" href="#Evaluation-of-RTF-results">&#182;</a></h2><p>On all sets: training, validation and test (for RTF chosen above. This is the "best" RTF on validation, as documented by the RTF code's output file.)</p>
+<p>Note that training data performance is not necessarily very informative. It is not included here</p>
+
+</div>
+</div>
+</div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
@@ -12282,7 +12303,8 @@ After cascade:
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Visualisation-of-scenes-(elements-of-test-set)">Visualisation of scenes (elements of test set)<a class="anchor-link" href="#Visualisation-of-scenes-(elements-of-test-set)">&#182;</a></h1>
+<h1 id="Visualisation-of-scenes-(elements-of-test-set)">Visualisation of scenes (elements of test set)<a class="anchor-link" href="#Visualisation-of-scenes-(elements-of-test-set)">&#182;</a></h1><p>Starting with a comparison to the classical denoising approach of total variation. TV's parameter has been found optimizing for this lorentzian loss on the validation set (see other notebook).</p>
+
 </div>
 </div>
 </div>
@@ -16307,6 +16329,16 @@ OBwOh8NxVHBjhsPhcDgcDofD4XA4HI6jghszHA6Hw+FwOBwOh8PhcBwV3JjhcDgcDofD4XA4HA6H
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Then, visualisation of random scenes demonstrates the RTF performance. Here, loss view highlights the improved image parts, showing that the RTF correcty systematically the largest errors. If no cascaded configuration is available, fallback via cascadeConfig=False delivers the prediction only.</p>
+
+</div>
+</div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
